@@ -111,6 +111,7 @@ def handle_query(question):
 
 
 with gr.Blocks() as demo:
+    title = gr.Markdown("# ☕️ Find the best West LA cafe for study!")
     inp = gr.Textbox(label="Your question")
     btn = gr.Button("Ask")
     answer = gr.Textbox(label="Answer", lines=8)

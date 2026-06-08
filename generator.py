@@ -39,13 +39,7 @@ def generate_response(query, retrieved_chunks):
         If the information is conflicting between the amenities and reviews, prioritize the amenities information, but mention the review information.
         If there are multiple same named cafes, tell them apart by their location in paranthesis and notify the user that there are multiple cafes with the same name.
         Note that times marked "(Next day)" are after midnight and are later than same-day PM closing times.
-        At the end, append the the short description of the cafe, in the format
-        "---------------------------
-        [CAFE NAME] / Rating: [RATING]
-        [ADDRESS]
-        [PHONE NUMBER if exists or omit]
-        [WEBSITE if exists or omit]
-        \n(Last updated: [Month] [Year])".
+        At the end, append the last update date of the information in the context, in the format "\n(Last updated: [Month] [Year])".
         """
     )
 
