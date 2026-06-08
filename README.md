@@ -169,7 +169,11 @@ I tried putting 'Note that times marked "(Next day)" are after midnight and are 
 
 **One way the spec helped you during implementation:**
 
+The spec was helpful to let LLM to better understand the design of the service and the structure of the code. It first went to my planning.md and try to understand what I am asking. Also it helped me where to begin and what to think before the code implementation.
+
 **One way your implementation diverged from the spec, and why:**
+
+It was hard to think of the detailed decision such as chunk size and retrieval count. First I set 5 for retrieval count, however, after running the service, I increased to 8.
 
 ---
 
