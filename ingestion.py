@@ -24,14 +24,11 @@ import os
 import re
 from urllib.parse import unquote
 
+from config import (CAFES_PATH, CHUNKS_PATH, DOCS_PATH, RAW_DOCS_PATH,
+                    STAMP_PATH)
+
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 TIME_RANGE = r"\d{1,2}:\d{2}\s?[AP]M\s*-\s*\d{1,2}:\d{2}\s?[AP]M|Closed"
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-DOC_DIR = os.path.join(HERE, "documents", "raw")
-OUT_DIR = os.path.join(HERE, "documents")
-CLEAN_DIR = OUT_DIR
-STAMP = os.path.join(OUT_DIR, ".raw_manifest.json")   # tracks raw mtimes/sizes
 
 # Map keyword(s) found in amenity text -> a boolean metadata flag.
 # These flags let the retrieval step filter exactly ("which cafes have wifi?")
@@ -101,15 +98,20 @@ def derive_flags(amenities):
 
 
 def extract_hours(raw):
-    """Weekly hours live in a <table ...hours...>. Parse its plain text so we
-    don't depend on the exact tag layout (it varies between pages)."""
-    tables = re.findall(r"<table[^>]*hours[^>]*>.*?</table>", raw, re.S | re.I)
-    if not tables:
-        return {}
-    plain = re.sub(r"\s+", " ", ht.unescape(re.sub(r"<[^>]+>", " ", tables[0])))
+    """Hours live in Yelp's hydration JSON as one OperationHoursForADayOfWeek
+    object per day: {"hours":["9:00 AM - 12:00 AM (Next day)"], ...,
+    "dayOfWeekShort":"Mon"}. We take the hours string(s) verbatim — whatever Yelp
+    displays, including the "(Next day)" past-midnight marker — rather than
+    re-parsing a fixed time format from the visible table."""
+    txt = ht.unescape(raw)
     hours = {}
-    for day, val in re.findall(rf"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+({TIME_RANGE})", plain):
-        hours.setdefault(day, re.sub(r"\s+", " ", val).strip())   # keep first range per day
+    for body, day in re.findall(
+        r'"hours":\[([^\]]*)\][^{}]*?"dayOfWeekShort":"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"',
+        txt,
+    ):
+        ranges = re.findall(r'"([^"]+)"', body)   # one string, or several for split hours
+        if ranges and day not in hours:           # keep the first object per day
+            hours[day] = ", ".join(ranges)
     return hours
 
 
@@ -127,7 +129,6 @@ def format_hours(hours):
         else:
             groups.append([d, d, v])
     return "; ".join((a if a == b else f"{a}-{b}") + f" {v}" for a, b, v in groups)
-
 
 def extract_website(raw):
     """Business website is an outbound Yelp redirect: /biz_redir?url=<encoded>."""
@@ -170,7 +171,7 @@ def extract_reviews(raw):
 def raw_state():
     """Fingerprint of the raw folder: {filename: [mtime, size]}."""
     state = {}
-    for path in glob.glob(os.path.join(DOC_DIR, "*.html")):
+    for path in glob.glob(os.path.join(RAW_DOCS_PATH, "*.html")):
         st = os.stat(path)
         state[os.path.basename(path)] = [st.st_mtime, st.st_size]
     return state
@@ -179,22 +180,22 @@ def raw_state():
 def is_stale():
     """True if a raw file was added, removed, or modified since the last build,
     or if any derived output is missing."""
-    if not (os.path.exists(STAMP)
-            and os.path.exists(os.path.join(OUT_DIR, "cafes.json"))
-            and os.path.exists(os.path.join(OUT_DIR, "chunks.jsonl"))):
+    if not (os.path.exists(STAMP_PATH)
+            and os.path.exists(CAFES_PATH)
+            and os.path.exists(CHUNKS_PATH)):
         return True
     try:
-        with open(STAMP, encoding="utf-8") as fh:
+        with open(STAMP_PATH, encoding="utf-8") as fh:
             return json.load(fh) != raw_state()
     except (json.JSONDecodeError, OSError):
         return True
 
 
 def clean():
-    os.makedirs(CLEAN_DIR, exist_ok=True)
-    files = sorted(glob.glob(os.path.join(DOC_DIR, "*.html")))
+    os.makedirs(DOCS_PATH, exist_ok=True)
+    files = sorted(glob.glob(os.path.join(RAW_DOCS_PATH, "*.html")))
     if not files:
-        raise SystemExit(f"No .html files found in {DOC_DIR}")
+        raise SystemExit(f"No .html files found in {RAW_DOCS_PATH}")
 
     cafes = []
     for path in files:
@@ -243,14 +244,14 @@ def clean():
         ]
         for i, r in enumerate(reviews, 1):
             lines.append(f"Review {i}: {r}")
-        with open(os.path.join(CLEAN_DIR, f"{slug}.txt"), "w", encoding="utf-8") as fh:
+        with open(os.path.join(DOCS_PATH, f"{slug}.txt"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")
 
-    with open(os.path.join(OUT_DIR, "cafes.json"), "w", encoding="utf-8") as fh:
+    with open(CAFES_PATH, "w", encoding="utf-8") as fh:
         json.dump(cafes, fh, ensure_ascii=False, indent=2)
 
-    print(f"Extracted {len(cafes)} cafes -> {os.path.join(OUT_DIR, 'cafes.json')}")
-    print(f"Clean text files -> {CLEAN_DIR}/")
+    print(f"Extracted {len(cafes)} cafes -> {CAFES_PATH}")
+    print(f"Clean text files -> {DOCS_PATH}/")
     print()
     for c in cafes:
         n_flags = sum(c["flags"].values())
@@ -265,9 +266,9 @@ def build(force=False):
         print("Raw documents unchanged — nothing to rebuild.")
         return False
     clean()
-    import chunk_documents          # rebuild chunks.jsonl from the fresh cafes.json
-    chunk_documents.main()
-    with open(STAMP, "w", encoding="utf-8") as fh:
+    import chunking  # rebuild chunks.jsonl from the fresh cafes.json
+    chunking.main()
+    with open(STAMP_PATH, "w", encoding="utf-8") as fh:
         json.dump(raw_state(), fh, indent=2)
     return True
 
@@ -275,7 +276,7 @@ def build(force=False):
 def watch(interval=5.0):
     """Poll the raw folder and rebuild whenever a file is added/changed/removed."""
     import time
-    print(f"Watching {DOC_DIR} every {interval:g}s — Ctrl+C to stop.")
+    print(f"Watching {RAW_DOCS_PATH} every {interval:g}s — Ctrl+C to stop.")
     build()                                   # initial build if needed
     try:
         while True:

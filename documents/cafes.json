@@ -620,15 +620,15 @@
     "last_updated": "June 2026",
     "website": "http://www.organico.co",
     "hours": {
-      "Mon": "9:00 AM - 12:00 AM",
-      "Tue": "9:00 AM - 12:00 AM",
-      "Wed": "9:00 AM - 12:00 AM",
-      "Thu": "9:00 AM - 12:00 AM",
-      "Fri": "9:00 AM - 12:00 AM",
-      "Sat": "9:00 AM - 12:00 AM",
-      "Sun": "9:00 AM - 12:00 AM"
+      "Mon": "9:00 AM - 12:00 AM (Next day)",
+      "Tue": "9:00 AM - 12:00 AM (Next day)",
+      "Wed": "9:00 AM - 12:00 AM (Next day)",
+      "Thu": "9:00 AM - 12:00 AM (Next day)",
+      "Fri": "9:00 AM - 12:00 AM (Next day)",
+      "Sat": "9:00 AM - 12:00 AM (Next day)",
+      "Sun": "9:00 AM - 12:00 AM (Next day)"
     },
-    "hours_summary": "Mon-Sun 9:00 AM - 12:00 AM",
+    "hours_summary": "Mon-Sun 9:00 AM - 12:00 AM (Next day)",
     "amenities": [
       "Offers delivery",
       "Offers take-out",

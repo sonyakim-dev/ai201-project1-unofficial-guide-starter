@@ -127,12 +127,12 @@ If cost weren't a constraint I'd weigh:
 
 1. Ingestion
    - Input: `documents/raw/*.html`
-   - Cleaning: `clean_documents.py`
-   - Output: `cafes.json`
+   - Cleaning: `ingestion.py`
+   - Output: `cafes.json`, `chunks.jsonl`
 
 2. Chunking
    - Input: `cafes.json`
-   - Chunking: `chunk_documents.py`
+   - Chunking: `chunking.py`
    - Output: `chunks.jsonl`
      - fact card + 1/review + metadatda flags
 
@@ -167,7 +167,7 @@ If cost weren't a constraint I'd weigh:
 
 **Milestone 3 — Ingestion and chunking:**
 
-I gave Claude the Chunking Strategy section plus a sample raw Yelp HTML file and asked it to inspect the real structure before writing code. It found the JSON-LD block, the `displayText`/`alias` amenity pairs, and the `<p class="comment...">` reviews, then produced `clean_documents.py` (extract → `cafes.json` + clean `.txt`) and `chunk_documents.py` (→ `chunks.jsonl`). I verified by spot-checking output across all 10 files and overrode the design to use one-review-per-chunk JSONL (with metadata flags) instead of plain newline-split text, after we established the 256-token truncation limit.
+I gave Claude the Chunking Strategy section plus a sample raw Yelp HTML file and asked it to inspect the real structure before writing code. It found the JSON-LD block, the `displayText`/`alias` amenity pairs, and the `<p class="comment...">` reviews, then produced `ingestion.py` (extract → `cafes.json` + clean `.txt`) and `chunking.py` (→ `chunks.jsonl`). I verified by spot-checking output across all 10 files and overrode the design to use one-review-per-chunk JSONL (with metadata flags).
 
 **Milestone 4 — Embedding and retrieval:**
 
@@ -175,4 +175,4 @@ I'll give Claude this Retrieval Approach section + `chunks.jsonl` and ask it to 
 
 **Milestone 5 — Generation and interface:**
 
-I'll give Claude the retrieved-chunk format and ask it to build a Groq generation step with a grounding system prompt (answer only from retrieved context, cite the cafe name, say "I don't have that info" when nothing relevant is retrieved), plus a Gradio/Streamlit UI. I'll verify by running the eval questions end-to-end and checking the failure case in the README.
+I'll give Claude the retrieved-chunk format and ask it to build a Groq generation step with a grounding system prompt (answer only from retrieved context, cite the cafe name, say "I don't have that info" when nothing relevant is retrieved, refer the last updated date at the end), plus a Gradio/Streamlit UI. I'll verify by running the eval questions end-to-end and checking the failure case in the README.

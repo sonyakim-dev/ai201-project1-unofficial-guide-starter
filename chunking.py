@@ -14,12 +14,10 @@ can filter exactly -- e.g. where={"has_wifi": True} -- and not just by
 embedding similarity. No overlap: each chunk is a self-contained record.
 """
 
-import os
 import json
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-CAFES = os.path.join(HERE, "documents", "cafes.json")
-OUT = os.path.join(HERE, "documents", "chunks.jsonl")
+from config import CAFES_PATH as CAFES
+from config import CHUNKS_PATH as OUT
 
 
 def to_float(v):
